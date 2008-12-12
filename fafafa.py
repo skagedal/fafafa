@@ -32,7 +32,7 @@ import xml.sax.saxutils
 settings = {
 	'rss_webmaster': 'skagedal@toolserver.org (Simon Kagedal)',
 	'program_name': 'Fafafa',
-	'version': '0.9.1',
+	'version': '0.9.2',
 	'output_dir': '/home/skagedal/public_html/feeds',
 	'cache_dir': '/home/skagedal/fafafa',
 	'url_base': 'http://toolserver.org/~skagedal/feeds/',
