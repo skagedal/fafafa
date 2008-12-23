@@ -4,7 +4,10 @@ content of the day"-type things on Wikimedia projects.
 For more information, see
 http://en.wikipedia.org/wiki/User:Skagedal/Fafafa
 
-fafafa.py is the program itself. Edit it to configure paths and stuff.
+To use this, copy local_settings_example.py to local_settings.py and
+edit to suit your needs.  
+
+fafafa.py is the program itself. 
 Invoke it with ./fafafa.py --help to see options.
 
 do_fafafa.sh is a wrapper script. I've set it up to run every

@@ -28,23 +28,24 @@ import xml.sax.saxutils
 # Settings
 #
 
-# ...General
+# ...General. These can be overriden by local_settings.py or specific 
+# settings for different feeds below
+
 settings = {
-	'rss_webmaster': 'skagedal@toolserver.org (Simon Kagedal)',
 	'program_name': 'Fafafa',
 	'version': '0.9.2',
-	'output_dir': '/home/skagedal/public_html/feeds',
-	'cache_dir': '/home/skagedal/fafafa',
-	'url_base': 'http://toolserver.org/~skagedal/feeds/',
 	'scrape_url_base': 'http://en.wikipedia.org/',
 	'guid': 'http://toolserver.org/~skagedal/feeds/%(id)s-%(year)d-%(month)02d-%(day)02d',
 	'entries': 20,
 	}
 
+from local_settings import local_settings
+settings.update(local_settings)
+
 # ...for Featured Articles
 settings_fa = {
 	'id': 'fa',
-	'url': 'http://en.wikipedia.org/wiki/Wikipedia:Today%%27s_featured_article/%(monthname)s_%(day)d%%2C_%(year)d',
+	'url': 'http://en.wikipedia.org/w/index.php?title=Wikipedia:Today%%27s_featured_article/%(monthname)s_%(day)d%%2C_%(year)d&action=render',
 	'rss_title': 'Wikipedia Featured Articles',
 	'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Today%%27s_featured_article',
 	'rss_description': 'RSS feed of the Wikipedia Featured Articles, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
@@ -53,7 +54,7 @@ settings_fa = {
 # ...for Picture of the Day
 settings_potd = {
 	'id': 'potd',
-	'url': 'http://en.wikipedia.org/wiki/Template:POTD/%(year)d-%(month)02d-%(day)02d',
+	'url': 'http://en.wikipedia.org/w/index.php?title=Template:POTD/%(year)d-%(month)02d-%(day)02d&action=render',
 	'rss_title': 'Wikipedia Picture of the Day',
 	'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day',
 	'rss_description': 'RSS feed of the Wikipedia Picture of the Day, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
@@ -62,7 +63,7 @@ settings_potd = {
 # ...for Selected anniversaries
 settings_sa = {
 	'id': 'sa',
-	'url': 'http://en.wikipedia.org/wiki/Wikipedia:Selected_anniversaries/%(monthname)s_%(day)d',
+	'url': 'http://en.wikipedia.org/w/index.php?title=Wikipedia:Selected_anniversaries/%(monthname)s_%(day)d&action=render',
 	'rss_title': 'Wikipedia: On This Day',
 	'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Selected_anniversaries',
 	'rss_description': 'RSS feed of the Wikipedia Selected Anniversaries, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
@@ -72,7 +73,7 @@ settings_sa = {
 # ...for Word of the Day
 settings_wotd = {
 	'id': 'wotd',
-	'url': 'http://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day/%(monthname)s_%(day)d',
+	'url': 'http://en.wiktionary.org/w/index.php?title=Wiktionary:Word_of_the_day/%(monthname)s_%(day)d&action=render',
 	'rss_title': 'Wiktionary: Word of the day',
 	'rss_link': 'http://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day',
 	'rss_description': 'RSS feed of the Wiktionary Word of the Day, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
@@ -82,7 +83,7 @@ settings_wotd = {
 # ...for Quote of the Day
 settings_qotd = {
 	'id': 'qotd',
-	'url': 'http://en.wikiquote.org/wiki/Wikiquote:Quote_of_the_day/%(monthname)s_%(day)d,_%(year)d',
+	'url': 'http://en.wikiquote.org/w/index.php?title=Wikiquote:Quote_of_the_day/%(monthname)s_%(day)d,_%(year)d&action=render',
 	'rss_title': 'Wikiquote: Quote of the day',
 	'rss_link': 'http://en.wikiquote.org/wiki/Wikiquote:Quote_of_the_day',
 	'rss_description': 'RSS feed of the Wikiquote Quote of the Day, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
@@ -104,14 +105,12 @@ def output_filename():
 def cache_filename():
 	return os.path.join(settings['cache_dir'], settings['id'] + '_cache.pickle')
 
-# Find the URL of FA article of a specific date
-#
-# ASSUMPTION: Featured articles for a specific day, say May 30, 2006, can be found at:
-# [[Wikipedia:Today's featured article/May_30, 2006]]
+# 
 
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 def get_url(date):
+	"""Find the URL of featured article of a specific date"""
 	return settings['url'] % \
 		{ 'monthname': months[date.month - 1], 'month': date.month, 'day': date.day, 'year': date.year }
 
@@ -121,10 +120,10 @@ def get_guid(date):
 	return settings['guid'] % \
 		{ 'id': settings['id'], 'monthname': months[date.month - 1], 'month': date.month, 'day': date.day, 'year': date.year }
 
-# Subclassing of URLopener - sets "User-agent: ", which Wikipedia requires to be set
-# to something else than the default "Python-urllib"
 
 class MyURLopener(urllib.URLopener):
+	"""Subclassing of URLopener - sets "User-agent: ", which Wikipedia requires to be set
+	   to something else than the default "Python-urllib"""
 	version = settings['program_name'] + "/" + settings['version']
 
 def too_old(date):
@@ -180,16 +179,7 @@ class WPCache:
 		p = cPickle.Pickler(file)
 		p.dump(self.cache)
 		
-# Get the content of the article
-#
-# ASSUMPTION: Content of article is between <!-- start content --> and <!-- end content -->
-
-re_content = re.compile('<!--\s*start\s+content\s*-->(.*)<!--\s*end\s+content\s*-->', re.DOTALL)
-def get_content(s):
-	m = re_content.search(s)
-	return m.group(1)
-
-# Get title of article - expects html filtered by get_content
+# Get title of article
 #
 # ASSUMPTION: 
 # * The text inside the first bolded a-tag is the title
@@ -250,8 +240,6 @@ def wotd_description(s):
 # Finally:
 # - Escapes HTML
 #
-# Expects html as returned from get_content
-#
 # ASSUMPTION: internal links (to /wiki/ or /w/) begin with the exact string: 'href="/'
 # ASSUMPTION: in-page links begin with 'href="#' 
 # ASSUMPTION: documentation div on SA pages start with '<div style="border', and is the only such div. This assumption is likely to change...
@@ -297,9 +285,10 @@ def enclosure(date, content):
 		return '<enclosure url="%s" length="%s" type="%s" />' % (url, length, type)
 	return ""
 
-# Create RSS item - expects html filtered by get_content
+# Create RSS item
 
 def rss_item(date, content):
+	"""date is the date for the item and content is the html"""
 	if settings_flag('no_title'):
 		title = "%s %d" % (months[date.month - 1], date.day)
 	else:
@@ -312,9 +301,9 @@ def rss_item(date, content):
 %(enclosure)s
 </item>
 """ % { 
-	'title': title, 
-	'url': get_url(date),
-	'guid': get_guid(date),
+	'title': xml.sax.saxutils.escape(title), 
+	'url': xml.sax.saxutils.escape(get_url(date)),
+	'guid': xml.sax.saxutils.escape(get_guid(date)),
 	'filtered_content': filter_content(content, get_url(date)),
 	'enclosure': enclosure(date, content)}
 
@@ -376,12 +365,8 @@ def main():
 	dates = [today_utc - one_day*x for x in range(settings['entries'])]
 
 	def item(date):
-		html = cache.get_html(date)
-		if html:
-			content = get_content(html)
-		else:
-			content = ''
-		return rss_item(date, content)
+		html = cache.get_html(date) or ''
+		return rss_item(date, html)
 
 	# Iterate over the items
 	items = string.join([item(date) for date in dates], "")
