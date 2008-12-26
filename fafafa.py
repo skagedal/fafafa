@@ -23,13 +23,10 @@ import httplib
 import re
 import cPickle
 import xml.sax.saxutils
+import logging
 
 #
-# Settings
-#
-
-# ...General. These can be overriden by local_settings.py or specific 
-# settings for different feeds below
+# Settings: Please edit local_settings.py 
 
 settings = {
 	'program_name': 'Fafafa',
@@ -39,56 +36,50 @@ settings = {
 	'entries': 20,
 	}
 
-from local_settings import local_settings
-settings.update(local_settings)
+try:
+	from local_settings import local_settings
+	settings.update(local_settings)
+except:
+	pass
 
-# ...for Featured Articles
-settings_fa = {
-	'id': 'fa',
-	'url': 'http://en.wikipedia.org/w/index.php?title=Wikipedia:Today%%27s_featured_article/%(monthname)s_%(day)d%%2C_%(year)d&action=render',
-	'rss_title': 'Wikipedia Featured Articles',
-	'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Today%%27s_featured_article',
-	'rss_description': 'RSS feed of the Wikipedia Featured Articles, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
+feeds = {
+	# Featured Articles
+	'fa': {
+		'project': 'en.wikipedia.org',
+		'page': 'Wikipedia:Today%%27s_featured_article/%(monthname)s_%(day)d%%2C_%(year)d',
+		'rss_title': 'Wikipedia Featured Articles',
+		'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Today%%27s_featured_article',
+	},
+	# Picture of the Day
+	'potd': {
+		'project': 'en.wikipedia.org',
+		'page': 'Template:POTD/%(year)d-%(month)02d-%(day)02d',
+		'rss_title': 'Wikipedia Picture of the Day',
+		'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day',
+	},
+	# Selected Anniversaries
+	'sa': {
+		'project': 'en.wikipedia.org',
+		'page': 'Wikipedia:Selected_anniversaries/%(monthname)s_%(day)d',
+		'rss_title': 'Wikipedia: On This Day',
+		'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Selected_anniversaries',
+		'no_title': True 
+	},
+	# Word of the Day
+	'wotd': {
+		'project': 'en.wiktionary.org',
+		'page': 'Wiktionary:Word_of_the_day/%(monthname)s_%(day)d',
+		'rss_title': 'Wiktionary Word of the day',
+		'rss_link': 'http://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day',
+	},
+	# Quote of the Day
+	'qotd': {
+		'project': 'en.wikiquote.org',
+		'page': 'Wikiquote:Quote_of_the_day/%(monthname)s_%(day)d,_%(year)d',
+		'rss_title': 'Wikiquote: Quote of the day',
+		'rss_link': 'http://en.wikiquote.org/wiki/Wikiquote:Quote_of_the_day',
+		'no_title': True,
 	}
-
-# ...for Picture of the Day
-settings_potd = {
-	'id': 'potd',
-	'url': 'http://en.wikipedia.org/w/index.php?title=Template:POTD/%(year)d-%(month)02d-%(day)02d&action=render',
-	'rss_title': 'Wikipedia Picture of the Day',
-	'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day',
-	'rss_description': 'RSS feed of the Wikipedia Picture of the Day, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
-}
-
-# ...for Selected anniversaries
-settings_sa = {
-	'id': 'sa',
-	'url': 'http://en.wikipedia.org/w/index.php?title=Wikipedia:Selected_anniversaries/%(monthname)s_%(day)d&action=render',
-	'rss_title': 'Wikipedia: On This Day',
-	'rss_link': 'http://en.wikipedia.org/wiki/Wikipedia:Selected_anniversaries',
-	'rss_description': 'RSS feed of the Wikipedia Selected Anniversaries, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
-	'no_title': True,
-}
-
-# ...for Word of the Day
-settings_wotd = {
-	'id': 'wotd',
-	'url': 'http://en.wiktionary.org/w/index.php?title=Wiktionary:Word_of_the_day/%(monthname)s_%(day)d&action=render',
-	'rss_title': 'Wiktionary: Word of the day',
-	'rss_link': 'http://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day',
-	'rss_description': 'RSS feed of the Wiktionary Word of the Day, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
-	'scrape_url_base': 'http://en.wiktionary.org/',
-}
-
-# ...for Quote of the Day
-settings_qotd = {
-	'id': 'qotd',
-	'url': 'http://en.wikiquote.org/w/index.php?title=Wikiquote:Quote_of_the_day/%(monthname)s_%(day)d,_%(year)d&action=render',
-	'rss_title': 'Wikiquote: Quote of the day',
-	'rss_link': 'http://en.wikiquote.org/wiki/Wikiquote:Quote_of_the_day',
-	'rss_description': 'RSS feed of the Wikiquote Quote of the Day, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa',
-	'scrape_url_base': 'http://en.wikiquote.org/',
-	'no_title': True,
 }
 
 # Globals
@@ -109,10 +100,16 @@ def cache_filename():
 
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
-def get_url(date):
+def get_view_url(date):
 	"""Find the URL of featured article of a specific date"""
-	return settings['url'] % \
+	return ('http://%s/wiki/%s' % (settings['project'], settings['page'])) % \
 		{ 'monthname': months[date.month - 1], 'month': date.month, 'day': date.day, 'year': date.year }
+
+def get_action_url(date, action):
+	"""Find the action URL of featured article of a specific date"""
+	return ('http://%s/w/index.php?title=%s&action=%s' % (settings['project'], settings['page'], action)) % \
+		{ 'monthname': months[date.month - 1], 'month': date.month, 'day': date.day, 'year': date.year }
+
 
 # Each item should have an unique GUID
 
@@ -164,7 +161,7 @@ class WPCache:
 		if date in self.cache:
 			return self.cache[date].html
 		else:
-			html = self.url_opener.open(get_url(date)).read()
+			html = self.url_opener.open(get_action_url(date, "render")).read()
 			cacheitem = CacheItem(html, time.gmtime())
 			self.cache[date] = cacheitem
 			return html
@@ -302,9 +299,9 @@ def rss_item(date, content):
 </item>
 """ % { 
 	'title': xml.sax.saxutils.escape(title), 
-	'url': xml.sax.saxutils.escape(get_url(date)),
+	'url': xml.sax.saxutils.escape(get_view_url(date)),
 	'guid': xml.sax.saxutils.escape(get_guid(date)),
-	'filtered_content': filter_content(content, get_url(date)),
+	'filtered_content': filter_content(content, get_view_url(date)),
 	'enclosure': enclosure(date, content)}
 
 # Puts the final RSS together
@@ -318,7 +315,7 @@ def rss(items):
 <atom:link href="%(url)s" rel="self" type="application/rss+xml" />
 <title>%(rss_title)s</title>
 <link>%(rss_link)s</link>
-<description>%(rss_description)s</description>
+<description>RSS feed of %(rss_title)s, generated from HTML by Fafafa: http://en.wikipedia/wiki/User:Skagedal/Fafafa</description>
 <language>en-us</language>
 <copyright>GNU Free Documentation License</copyright>
 <lastBuildDate>%(build_date)s</lastBuildDate>
@@ -333,35 +330,19 @@ def rss(items):
 """ % {
 	'rss_title': settings['rss_title'], 
 	'rss_link': settings['rss_link'],
-	'rss_description': settings['rss_description'],
 	'webmaster': settings['rss_webmaster'],
 	'build_date': time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
 	'items': items, 
 	'generator': settings['program_name'] + " " + settings['version'],
 	'url': settings['url_base'] + settings['id'] + '.xml' }
 
-# Main
-
-def main():
-	# Primitive command line parsing
-	if '--potd' in sys.argv:
-		settings.update(settings_potd)
-	elif '--sa' in sys.argv:
-		settings.update(settings_sa)
-	elif '--fa' in sys.argv:
-		settings.update(settings_fa)
-	elif '--wotd' in sys.argv:
-		settings.update(settings_wotd)
-	elif '--qotd' in sys.argv:
-		settings.update(settings_qotd)
-	else:
-		print "Usage: --potd, --sa, -fa, --wotd, or --qotd" 
-		sys.exit(1)
-
-	one_day = datetime.timedelta(days = 1)
+def do_feed(feed_id):
+	settings.update(feeds[feed_id])
+	settings['id'] = feed_id
 
 	cache = WPCache(cache_filename())
 	
+	one_day = datetime.timedelta(days = 1)
 	dates = [today_utc - one_day*x for x in range(settings['entries'])]
 
 	def item(date):
@@ -378,6 +359,32 @@ def main():
 	file.close()
 	
 	cache.save()
+
+# Main
+
+def main():
+	# Command line parsing
+	from optparse import OptionParser
+	usage = """usage: %prog [options] feed1 feed2... 
+	where feed is one of """ + " ".join(feeds.keys()) + """
+	if no feed is specified, all are generated
+
+	alternatively: %prog [options] all"""
+
+	parser = OptionParser(usage=usage, version="0.9.3")
+	parser.add_option("-q", "--quiet", action="store_true", dest="quiet", default=False, help="be rather quiet")
+	(options, args) = parser.parse_args()
+
+	logging.basicConfig(level=logging.WARNING if options.quiet else logging.DEBUG)
+
+	if args == []:
+		args = feeds.keys()
+	for f in args:
+		if not (f in feeds.keys()):
+			print "unknown feed id: %s" % f
+			sys.exit(1)
+		logging.info("Generating feed '%s'..." % f)
+		do_feed(f)
 
 # Useful functions when using from Python shell
 
