@@ -42,7 +42,6 @@ import logging
 settings = {
 	'program_name': 'Fafafa',
 	'version': '0.9.2',
-	'scrape_url_base': 'http://en.wikipedia.org/',
 	'guid': 'http://toolserver.org/~skagedal/feeds/%(id)s-%(year)d-%(month)02d-%(day)02d',
 	'entries': 20,
 	}
@@ -266,7 +265,7 @@ re_filter_qotd_info = re.compile(r'(?si)<p><small>.*</small></p>')
 def filter_content(s, page_url):
 	s = re_filter_html_comment.sub('', s)
 	s = re_filter_footer.sub('', s)
-	s = s.replace('href="/', 'href="%s' % settings['scrape_url_base'] )
+	s = s.replace('href="/', 'href="http://%s/' % settings['project'] )
 	s = s.replace('href="#', 'href="%s#' % page_url)
 	if settings['id'] == 'fa':
 		s = re_filter_fa_recent.sub('', s)
