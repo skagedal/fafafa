@@ -1,16 +1,27 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 #
+#    Copyright 2008 Simon Kågedal
+#
+#    This file is part of Fafafa.
+#
+#    Fafafa is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Fafafa is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with Fafafa.  If not, see <http://www.gnu.org/licenses/>.
+#
 # http://en.wikipedia.org/wiki/User:Skagedal/Fafafa
 #
-# This program generates RSS feeds of Wikipedia's Featured Articles and Picture of the Day.
+# This program generates RSS feeds of featured content from Wikimedia projects.
 #
-# Command line options:
-#    --fa       generate featured articles feed
-#    --potd     generate picture of the day feed
-#    --sa       generate selected anniversaries feed
-#    --wotd	generate word of the day feed (experimental)
-#    --qotd  	generate quote of the day feed
 
 import sys
 import os
@@ -161,7 +172,9 @@ class WPCache:
 		if date in self.cache:
 			return self.cache[date].html
 		else:
-			html = self.url_opener.open(get_action_url(date, "render")).read()
+			url = get_action_url(date, "render")
+			logging.debug("Retreiving %s." % url)
+			html = self.url_opener.open(url).read()
 			cacheitem = CacheItem(html, time.gmtime())
 			self.cache[date] = cacheitem
 			return html
