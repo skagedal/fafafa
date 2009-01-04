@@ -257,6 +257,7 @@ def wotd_description(s):
 
 re_filter_html_comment = re.compile(r'(?s)<!--.*?-->')
 re_filter_footer = re.compile(r'(?s)<div class="printfooter">.*')
+re_filter_sa_navtable = re.compile(r'(?s)<table width="100%">.*?</table>')
 re_filter_sa_div = re.compile(r'(?si)<div style="border.*?</div>')
 re_filter_sa_more = re.compile(r'(?s)<p>More events: .*')
 re_filter_fa_recent = re.compile(r'(?s)<p>Recently featured: .*')
@@ -270,6 +271,7 @@ def filter_content(s, page_url):
 	if settings['id'] == 'fa':
 		s = re_filter_fa_recent.sub('', s)
 	if settings['id'] == 'sa':
+		s = re_filter_sa_navtable.sub('', s)
 		s = re_filter_sa_div.sub('', s)
 		s = re_filter_sa_more.sub('', s)
 	if settings['id'] == 'potd':
