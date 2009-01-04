@@ -305,7 +305,7 @@ def rss_item(date, content):
 	return """<item>
 <title>%(title)s</title>
 <link>%(url)s</link>
-<guid>%(guid)s</guid>
+<guid isPermaLink="false">%(guid)s</guid>
 <description>%(filtered_content)s</description>
 %(enclosure)s
 </item>
