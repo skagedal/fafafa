@@ -251,14 +251,16 @@ def wotd_description(s):
 #
 # ASSUMPTION: internal links (to /wiki/ or /w/) begin with the exact string: 'href="/'
 # ASSUMPTION: in-page links begin with 'href="#' 
-# ASSUMPTION: documentation div on SA pages start with '<div style="border', and is the only such div. This assumption is likely to change...
+# ASSUMPTION: documentation div on SA pages starts with '<div class="template-documentation'. This is removed. Previously,
+#             this started with '<div style="border' - this is also removed for old entries (pre 2010-08-04).
 # ASSUMPTION: on SA pages, everything from the text '<p>More events: ' is not relevant for RSS feed
 # ASSUMPTION: on POTD pages, the content we want is between the first occurence of '<td>' and the last occurence of '</td>'
 
 re_filter_html_comment = re.compile(r'(?s)<!--.*?-->')
 re_filter_footer = re.compile(r'(?s)<div class="printfooter">.*')
 re_filter_sa_navtable = re.compile(r'(?s)<table width="100%">.*?</table>')
-re_filter_sa_div = re.compile(r'(?si)<div style="border.*?</div>')
+re_filter_sa_div_old = re.compile(r'(?si)<div style="border.*?</div>')		# This could be removed at 2010-08-24 or later
+re_filter_sa_div = re.compile(r'(?si)<div class="template-documentation.*?</div>')
 re_filter_sa_more = re.compile(r'(?s)<p>More events: .*')
 re_filter_fa_recent = re.compile(r'(?s)<p>Recently featured: .*')
 re_filter_potd_tablecont = re.compile(r'(?si)<td>.*</td>')
@@ -273,6 +275,7 @@ def filter_content(s, page_url):
 	if settings['id'] == 'sa':
 		s = re_filter_sa_navtable.sub('', s)
 		s = re_filter_sa_div.sub('', s)
+		s = re_filter_sa_div_old.sub('', s)
 		s = re_filter_sa_more.sub('', s)
 	if settings['id'] == 'potd':
 		tds = re_filter_potd_tablecont.findall(s)
